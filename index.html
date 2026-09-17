@@ -71,7 +71,7 @@ details{margin-top:25px;border-top:1px solid var(--line);padding-top:20px}
 summary{cursor:pointer;font-weight:700}
 .hidden{display:none!important}
 .summary-note{font-size:13px;color:#69767d}
-.download-preview{display:block;max-width:360px;width:100%;margin:18px auto;border:1px solid var(--line)}
+.download-preview{display:block;max-width:420px;width:100%;margin:18px auto;border:1px solid var(--line)}
 .name-field{margin-top:22px}
 .name-field label{display:block;font-size:14px;font-weight:700;margin-bottom:7px}
 .name-field input{width:100%;padding:12px;border:1px solid #b9b6ae;border-radius:9px;background:white;color:var(--ink);font:inherit;font-size:16px}
@@ -250,35 +250,67 @@ function showResult(){
   window.scrollTo(0,0);
 }
 function loadImage(src){return new Promise((resolve,reject)=>{const im=new Image();im.onload=()=>resolve(im);im.onerror=()=>reject(new Error('画像を読み込めませんでした。もう一度お試しください。'));im.src=src})}
-function wrap(ctx,text,x,y,maxWidth,lineHeight){let line='';for(const c of text){if(ctx.measureText(line+c).width>maxWidth&&line){ctx.fillText(line,x,y);y+=lineHeight;line=c}else line+=c}if(line)ctx.fillText(line,x,y);return y+lineHeight}
+function wrap(ctx,text,x,y,maxWidth,lineHeight){let line='';for(const c of text){if(ctx.measureText(line+c).width>maxWidth&&line){ctx.fillText(line,x,y);y+=lineHeight;line=c}else line+=c}if(line){ctx.fillText(line,x,y);y+=lineHeight}return y}
+function fillRound(ctx,x,y,w,h,r){ctx.beginPath();if(ctx.roundRect)ctx.roundRect(x,y,w,h,r);else ctx.rect(x,y,w,h);ctx.fill()}
 async function makeResultImage(result){
   const t=types[result.index],pal=typeColor(t[0]);
   const svg=pictogramSvg(result.index).replace('<svg ', '<svg width="640" height="640" ');
   const im=await loadImage('data:image/svg+xml;charset=utf-8,'+encodeURIComponent(svg));
   await document.fonts.ready;
   const cv=document.createElement('canvas');
-  cv.width=1080;cv.height=1580;
-  const cx=cv.getContext('2d'),accent=pal.fg;
-  cx.fillStyle='#fbf7ef';cx.fillRect(0,0,1080,1580);
-  cx.fillStyle='#122b43';cx.font='bold 60px Georgia,serif';cx.fillText('ABTI.',60,88);
+  cv.width=1080;cv.height=1560;
+  const cx=cv.getContext('2d'),accent=pal.fg,ink='#122b43',muted='#5d6971',m=64,w=952;
+  const jp='"Yu Gothic",Meiryo,sans-serif';
+  cx.fillStyle='#fbf7ef';cx.fillRect(0,0,1080,1560);
+  cx.fillStyle=ink;cx.font='bold 54px Georgia,serif';cx.fillText('ABTI.',m,78);
+  cx.fillStyle='#a15a21';cx.font='22px '+jp;cx.fillText('飲み会人格診断',248,70);
+  cx.fillStyle=muted;cx.font='22px '+jp;
   const resultLabel=result.name?result.name+'さんの診断結果':'あなたの飲み会人格';
-  let labelSize=32;cx.font=labelSize+'px "Yu Gothic",Meiryo,sans-serif';
-  while(cx.measureText(resultLabel).width>680&&labelSize>18){labelSize--;cx.font=labelSize+'px "Yu Gothic",Meiryo,sans-serif'}
-  cx.fillText(resultLabel,340,81,680);
-  cx.fillStyle=pal.bg;cx.fillRect(60,126,960,760);
-  cx.drawImage(im,310,216,460,460);
-  cx.fillStyle=accent;cx.fillRect(60,886,960,9);
-  cx.font='bold 92px Georgia,serif';cx.fillText(t[0],60,997);
-  cx.fillStyle='#122b43';cx.font='bold 48px "Yu Gothic",Meiryo,sans-serif';
-  let y=wrap(cx,t[1],60,1074,960,64);
-  cx.font='30px "Yu Gothic",Meiryo,sans-serif';y=wrap(cx,t[3],60,y+15,960,45);
-  cx.fillStyle=accent;cx.font='27px "Yu Gothic",Meiryo,sans-serif';
-  cx.fillText(t[6].map(s=>'#'+s).join('   '),60,y+25);
-  cx.fillStyle='#122b43';cx.font='26px "Yu Gothic",Meiryo,sans-serif';
-  axes.forEach((a,i)=>{const left=result.counts[i],letter=a[left>=2?0:1],name=a[left>=2?2:3],col=i%2,row=Math.floor(i/2);cx.fillText(letter+'  '+name,60+col*490,1330+row*58)});
-  cx.font='22px "Yu Gothic",Meiryo,sans-serif';cx.fillStyle='#5d6971';
-  cx.fillText('MBTIとは別のオリジナル・エンタメ診断です。',60,1490);
-  cx.fillText('ノンアルでも、自分のペースで。',60,1528);
+  cx.fillText(resultLabel+'  ·  12問の回答から判定',m,118);
+
+  const box=300,boxY=148,tx=m+box+36,tw=1080-m-tx;
+  cx.fillStyle=pal.bg;fillRound(cx,m,boxY,box,box,28);
+  cx.drawImage(im,m+36,boxY+36,228,228);
+
+  cx.fillStyle=accent;cx.font='bold 70px Georgia,serif';cx.fillText(t[0],tx,boxY+74);
+  cx.fillStyle=ink;cx.font='bold 32px '+jp;
+  let y=wrap(cx,t[1],tx,boxY+124,tw,44);
+  cx.fillStyle=accent;cx.font='25px '+jp;
+  y=wrap(cx,'「'+t[2]+'」',tx,y+6,tw,38);
+  cx.fillStyle=muted;cx.font='23px '+jp;
+  y=wrap(cx,t[3],tx,y+4,tw,34);
+  cx.fillStyle=accent;cx.font='21px '+jp;
+  y=wrap(cx,t[6].map(s=>'#'+s).join('   '),tx,y+10,tw,30);
+
+  y=Math.max(boxY+box,y)+44;
+  cx.fillStyle=accent;cx.fillRect(m,y,w,6);
+  y+=52;
+  cx.fillStyle=ink;cx.font='28px '+jp;
+  y=wrap(cx,t[4],m,y,w,46);
+  y+=30;
+  cx.fillStyle=accent;cx.font='bold 24px '+jp;
+  cx.fillText('もっと心地よい一杯に',m,y);
+  y+=42;
+  cx.fillStyle=ink;cx.font='26px '+jp;
+  y=wrap(cx,t[5],m,y,w,40);
+  y+=36;
+  cx.fillStyle=ink;cx.font='bold 24px '+jp;
+  cx.fillText('あなたの回答バランス',m,y);
+  y+=20;
+  axes.forEach((a,i)=>{
+    const n=result.counts[i],pct=Math.round(n/3*100);
+    cx.font='22px '+jp;
+    cx.fillStyle=n>=2?accent:muted;cx.textAlign='left';cx.fillText(`${a[0]} ${a[2]}  ${pct}%`,m,y+26);
+    cx.fillStyle=n<2?accent:muted;cx.textAlign='right';cx.fillText(`${100-pct}%  ${a[3]} ${a[1]}`,m+w,y+26);
+    cx.textAlign='left';
+    y+=40;
+    cx.fillStyle='#e4e8ec';fillRound(cx,m,y,w,12,6);
+    if(pct>0){cx.fillStyle=accent;fillRound(cx,m,y,Math.max(14,w*pct/100),12,6)}
+    y+=34;
+  });
+  cx.fillStyle=muted;cx.font='20px '+jp;
+  y=wrap(cx,'各軸3問の回答割合です。性格の強さや診断の確かさを示す数値ではありません。',m,y+8,w,30);
+  cx.fillText('MBTIとは別のオリジナル・エンタメ診断です。ノンアルでも、自分のペースで。',m,1512);
   return new Promise((resolve,reject)=>cv.toBlob(b=>b?resolve(b):reject(new Error('画像の作成に失敗しました。')),'image/png'));
 }
 async function saveResult(){
